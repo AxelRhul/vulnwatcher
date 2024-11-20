@@ -17,7 +17,23 @@ This program uses [OSV](https://google.github.io/osv.dev/), a service by Google 
 - Stores sent vulnerabilities to avoid duplicates.
 - Easy configuration via a `.env.local` file.
 
-## 🐳 Installation with Docker
+## 🤖 Discord Developer Portal Setup 
+
+1. Go to [Discord Developer Portal](https://discord.com/developers/applications)
+2. New Application
+3. Setup Name and accept the Discord Developer Terls of Service and Developer Policy.
+4. Go to "Installation" in the right nav bar
+5. Scroll down and search "Guild Install"
+6. click on scopes and select bot
+7. click on permissions, search for "Send Messages" and click on it
+8. click on "Save Changes" (the big green button in the bottom)
+9. Go to bot in the right nav bar
+10. click on "Reset Token"
+11. COPY IT AND KEEP IT SOMEWHERE YOU NOT GONNA LOSE IT
+
+Now you get two choise to install the bot, with Docker or without.
+
+## 🐳 Installation with Docker (recommanded)
 
 ### Prerequisites
 
@@ -35,10 +51,11 @@ This program uses [OSV](https://google.github.io/osv.dev/), a service by Google 
 2. Create a `.env.local` file at the root of the project and add your environment variables :
 
    ```env
-   DISCORD_TOKEN=your_discord_token
-   GITHUB_TOKEN=your_github_token
-   DISCORD_CHANNEL_ID=your_discord_channel_id
-   REFRESH_TIME=3600
+   DISCORD_TOKEN = "your_discord_bot_token"
+   GITHUB_TOKEN = "your_github_token"
+   DISCORD_CHANNEL_ID = "your_discord_channel_id"
+   DISCORD_USER_ID = "your_discord_user_id"
+   REFRESH_TIME = 3600 
    ```
 
 3. Make sure the `config.json` and `sent_vulns.json` files exist in the project root :
