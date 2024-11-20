@@ -14,7 +14,7 @@ This program uses [OSV](https://google.github.io/osv.dev/), a service by Google 
 
 - Checks for vulnerabilities in npm and Packagist packages.
 - Sends notifications on Discord for new vulnerabilities.
-- Stores sent vulnerabilities to avoid duplicates.
+- Stores sent vulnerabilities to avoid duplicates (re-send notification if previous notification is > 1 week).
 - Easy configuration via a `.env.local` file.
 
 ## 🤖 Discord Developer Portal Setup 
