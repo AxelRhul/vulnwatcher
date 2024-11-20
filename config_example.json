@@ -1,0 +1,14 @@
+{
+    "repositories": [
+      {
+        "owner": "JohnDoe",
+        "repo": "some-repo-in-nodejs",
+        "configPath": "package-lock.json"
+      },
+      {
+        "owner": "JohnDoe",
+        "repo": "some-repo-in-symfony",
+        "configPath": "composer.lock"
+      }
+    ]
+  }

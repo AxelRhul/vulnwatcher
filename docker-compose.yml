@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  bot:
+    build: .
+    container_name: bot-osv
+    env_file:
+      - .env.local
+    volumes:
+      - ./configs:/usr/src/app/configs
+      - ./sent_vulns.json:/usr/src/app/sent_vulns.json
+      - ./config.json:/usr/src/app/config.json
+    restart: unless-stopped
