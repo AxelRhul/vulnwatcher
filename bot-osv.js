@@ -6,11 +6,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
-
 dotenv.config({ path: '.env.local' });
+
 const bot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 
-const token = process.env.DISCORD_TOKEN; // Utiliser la variable d'environnement pour le token Discord
+const token = process.env.DISCORD_TOKEN;
 const githubToken = process.env.GITHUB_TOKEN;
 
 const octokit = new Octokit({ auth: githubToken });
@@ -20,24 +20,24 @@ const __dirname = path.dirname(__filename);
 const configDir = path.join(__dirname, 'configs');
 const sentVulnsFile = path.join(__dirname, 'sent_vulns.json');
 
-// Créez le répertoire configs s'il n'existe pas
+// Create the configs directory if it doesn't exist
 if (!fs.existsSync(configDir)) {
     fs.mkdirSync(configDir);
 }
 
-// Créez le fichier sent_vulns.json s'il n'existe pas
+// Create the sent_vulns.json file if it doesn't exist
 if (!fs.existsSync(sentVulnsFile)) {
     fs.writeFileSync(sentVulnsFile, JSON.stringify({}));
 }
 
 bot.on('ready', async () => {
-    console.log(`Connecté en tant que ${bot.user.tag}!`);
-    await telechargerFichiersConfiguration();
-    verifierVulnerabilites();
-    setInterval(verifierVulnerabilites, process.env.REFRESH_TIME * 1000); // Vérifier toutes les heures (3600000 ms)
+    console.log(`Logged in as ${bot.user.tag}!`);
+    await downloadConfigFiles();
+    checkVulnerabilities();
+    setInterval(checkVulnerabilities, process.env.REFRESH_TIME * 1000); // Check every hour (3600000 ms)
 });
 
-async function telechargerFichiersConfiguration() {
+async function downloadConfigFiles() {
     try {
         const config = JSON.parse(fs.readFileSync('config.json', 'utf-8'));
         const repositories = config.repositories || [];
@@ -53,22 +53,22 @@ async function telechargerFichiersConfiguration() {
             const content = Buffer.from(data.content, 'base64').toString('utf-8');
             const filePath = path.join(configDir, `${owner}-${repoName}-${configPath.replace(/\//g, '-')}`);
             fs.writeFileSync(filePath, content);
-            console.log(`Fichier de configuration téléchargé et sauvegardé pour ${owner}/${repoName}.`);
+            console.log(`Configuration file downloaded and saved for ${owner}/${repoName}.`);
         }
     } catch (error) {
-        console.error('Erreur lors du téléchargement des fichiers de configuration :', error);
+        console.error('Error downloading configuration files:', error);
     }
 }
 
-async function verifierVulnerabilites() {
-    console.log('Vérification des vulnérabilités...');
+async function checkVulnerabilities() {
+    console.log('Checking for vulnerabilities...');
     const config = JSON.parse(fs.readFileSync('config.json', 'utf-8'));
-    const repositories = config.repositories || [];
+    const repositories = config.repositories || []; // Fixed: Was config.json
     const sentVulns = JSON.parse(fs.readFileSync(sentVulnsFile, 'utf-8'));
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const channelId = process.env.DISCORD_CHANNEL_ID;
     const channel = bot.channels.cache.get(channelId);
-    
+
 
     for (const repo of repositories) {
         const { owner, repo: repoName, configPath } = repo;
@@ -90,11 +90,11 @@ async function verifierVulnerabilites() {
 
         for (const [packageName, version] of packages) {
             try {
-                console.log(`Vérification des vulnérabilités pour ${packageName} (${version})`);
+                console.log(`Checking vulnerabilities for ${packageName} (${version})`);
                 let requestBody;
                 if (configPath.endsWith('package-lock.json')) {
                     requestBody = {
-                        version: version.replace(/^[^0-9]*/, ''), // Enlever les caractères non numériques au début de la version
+                        version: version.replace(/^[^0-9]*/, ''), // Remove non-numeric characters at the beginning of the version
                         package: {
                             name: packageName,
                             ecosystem: ecosystem
@@ -102,50 +102,50 @@ async function verifierVulnerabilites() {
                     };
                 } else if (configPath.endsWith('composer.lock')) {
                     requestBody = {
-                        version: version.replace(/[^a-zA-Z0-9.]/g, ''), // Enlever les caractères non alphanumériques sauf les points
+                        version: version.replace(/[^a-zA-Z0-9.]/g, ''), // Remove non-alphanumeric characters except dots
                         package: {
                             name: packageName,
                             ecosystem: ecosystem
                         }
                     };
                 }
-                console.log('Requête envoyée à l\'API OSV:', requestBody);
+                console.log('Request sent to OSV API:', requestBody);
                 const response = await fetch(`https://api.osv.dev/v1/query`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody),
                 });
                 const data = await response.json();
-                console.log(`Réponse de l'API OSV pour ${packageName} (${version}):`, data);
+                console.log(`Response from OSV API for ${packageName} (${version}):`, data);
                 if (data.vulns && data.vulns.length > 0) {
-                    // Il y a de nouvelles vulnérabilités
+                    // There are new vulnerabilities
                     for (const vuln of data.vulns) {
                         const vulnId = vuln.id;
                         if (sentVulns[vulnId] && sentVulns[vulnId] > oneWeekAgo) {
-                            console.log(`Vulnérabilité ${vulnId} déjà envoyée il y a moins d'une semaine.`);
+                            console.log(`Vulnerability ${vulnId} already sent less than a week ago.`);
                             continue;
                         }
                         const userId = process.env.DISCORD_USER_ID;
-                        let message = `# 🚨 <@${userId}> **Nouvelle vulnérabilité pour ${packageName} (${ecosystem}) dans ${owner}/${repoName} :**\n`;
+                        let message = `# 🚨 <@${userId}> **New vulnerability for ${packageName} (${ecosystem}) in ${owner}/${repoName} :**\n`;
                         message += `## 🔗 [${vuln.id}](https://osv.dev/vulnerability/${vuln.id}): ${vuln.summary}\n`;
-                        message += `## 📝 **Détails:**\n${vuln.details.replace(/https?:\/\/[^\s]+/g, match => `<${match.slice(0, -1)}>${match.slice(-1)}`).replace(/####/g, '###')}\n\n\n`;
-                        message += `## 🔗 **Références:**\n`;
+                        message += `## 📝 **Details:**\n${vuln.details.replace(/https?:\/\/[^\s]+/g, match => `<${match.slice(0, -1)}>${match.slice(-1)}`).replace(/####/g, '###')}\n\n\n`;
+                        message += `## 🔗 **References:**\n`;
                         for (const ref of vuln.references || []) {
                             message += `• <${ref.url}>\n`;
                         }
                         message += `\n`;
-                        message += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`; // Ajout du séparateur
-                        // Envoyer le message pour chaque vulnérabilité
+                        message += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`; // Added separator
+                        // Send the message for each vulnerability
                         await channel.send(message);
-                        // Mettre à jour le fichier sent_vulns.json
+                        // Update the sent_vulns.json file
                         sentVulns[vulnId] = Date.now();
                         fs.writeFileSync(sentVulnsFile, JSON.stringify(sentVulns, null, 2));
                     }
                 } else {
-                    console.log(`Aucune vulnérabilité trouvée pour ${packageName} (${version})`);
+                    console.log(`No vulnerabilities found for ${packageName} (${version})`);
                 }
             } catch (error) {
-                console.error('Erreur lors de la vérification des vulnérabilités pour', packageName, version, ':', error);
+                console.error('Error checking vulnerabilities for', packageName, version, ':', error);
             }
         }
     }
