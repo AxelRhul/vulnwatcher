@@ -1,5 +1,10 @@
-sent_vulns.json
+
 .env.local
-config.json
-configs/
+
+config/
+
+packageFiles/
+
 node_modules/
+
+.idea/
